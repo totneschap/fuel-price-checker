@@ -1,0 +1,20 @@
+{
+  "name": "fuel-price-checker",
+  "version": "1.0.0",
+  "description": "UK petrol/diesel price comparison app using open retailer fuel price feeds",
+  "main": "server.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "csv-parse": "^7.0.2",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  }
+}

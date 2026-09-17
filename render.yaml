@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: fuel-price-checker
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: FUEL_FINDER_CLIENT_ID
+        sync: false
+      - key: FUEL_FINDER_CLIENT_SECRET
+        sync: false
+      - key: OCM_API_KEY
+        sync: false
