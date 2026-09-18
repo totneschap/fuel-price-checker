@@ -4,6 +4,7 @@
 // genuinely unique, current content per city rather than one thin template repeated
 // with a name swapped in.
 const { milesBetween } = require("./distance");
+const { brandLogoUrl } = require("./brandLogos");
 
 const BASE_URL = "https://ukfuelchecker.co.uk";
 const RADIUS_MILES = 10;
@@ -30,32 +31,57 @@ function stationsNear(cache, city, fuelCode) {
     .sort((a, b) => a.prices[fuelCode] - b.prices[fuelCode]);
 }
 
-function stationTable(stations, fuelCode) {
+function stationCards(stations, fuelCode) {
   if (stations.length === 0) {
     return `<p class="empty-note">No stations selling this fuel were found within ${RADIUS_MILES} miles.</p>`;
   }
 
-  const rows = stations
-    .slice(0, 10)
-    .map(
-      (s, i) => `
-      <tr>
-        <td>${i + 1}</td>
-        <td>${escapeHtml(s.brand)}</td>
-        <td>${escapeHtml(s.address)}${s.postcode ? ", " + escapeHtml(s.postcode) : ""}</td>
-        <td>${s.distance.toFixed(1)} mi</td>
-        <td class="price-cell">${s.prices[fuelCode].toFixed(1)}p</td>
-      </tr>`
-    )
+  const top = stations.slice(0, 10);
+  const min = top[0].prices[fuelCode];
+  const max = top[top.length - 1].prices[fuelCode];
+
+  const cards = top
+    .map((s, i) => {
+      const logo = brandLogoUrl(s.brand);
+      const price = s.prices[fuelCode];
+      const priceClass = price === min ? "cheap" : price === max && max !== min ? "pricey" : "";
+      return `
+      <li class="station-card">
+        <div class="station-info">
+          <div class="station-brand">
+            <span class="station-rank">${i + 1}</span>
+            ${logo ? `<img class="loc-brand-logo" src="${logo}" alt="" />` : ""}
+            ${escapeHtml(s.brand)}
+          </div>
+          <div class="station-address">${escapeHtml(s.address)}${s.postcode ? ", " + escapeHtml(s.postcode) : ""}</div>
+          <div class="station-distance">${s.distance.toFixed(1)} mi away</div>
+        </div>
+        <div class="station-price ${priceClass}">
+          <span class="pence">${price.toFixed(1)}p</span>
+        </div>
+      </li>`;
+    })
     .join("");
 
+  return `<ul class="results loc-results">${cards}</ul>`;
+}
+
+function statsSummary(fuelData) {
+  const chips = fuelData
+    .filter((f) => f.stations.length > 0)
+    .map((f) => {
+      const cheapest = f.stations[0].prices[f.code];
+      return `<div class="stat-chip"><span class="stat-value">${cheapest.toFixed(1)}p</span><span class="stat-label">cheapest ${f.label.toLowerCase()}</span></div>`;
+    })
+    .join("");
+
+  const stationCount = new Set(fuelData.flatMap((f) => f.stations.map((s) => s.id))).size;
+
   return `
-    <table class="price-table">
-      <thead>
-        <tr><th>#</th><th>Station</th><th>Address</th><th>Distance</th><th>Price</th></tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>`;
+    <div class="stats-bar">
+      ${chips}
+      <div class="stat-chip"><span class="stat-value">${stationCount}</span><span class="stat-label">stations within ${RADIUS_MILES} mi</span></div>
+    </div>`;
 }
 
 function nearbyCityLinks(city, allCities, count = 6) {
@@ -64,8 +90,8 @@ function nearbyCityLinks(city, allCities, count = 6) {
     .map((c) => ({ ...c, distance: milesBetween(city.lat, city.lon, c.lat, c.lon) }))
     .sort((a, b) => a.distance - b.distance)
     .slice(0, count)
-    .map((c) => `<a href="/petrol-prices/${c.slug}">${escapeHtml(c.name)}</a>`)
-    .join(", ");
+    .map((c) => `<a class="city-chip" href="/petrol-prices/${c.slug}">${escapeHtml(c.name)}</a>`)
+    .join("");
 }
 
 function renderLocationPage(city, cache, allCities) {
@@ -87,7 +113,7 @@ function renderLocationPage(city, cache, allCities) {
     .map(
       (f) => `
       <h2>${f.label} prices in ${escapeHtml(city.name)}</h2>
-      ${stationTable(f.stations, f.code)}`
+      ${stationCards(f.stations, f.code)}`
     )
     .join("");
 
@@ -108,8 +134,12 @@ function renderLocationPage(city, cache, allCities) {
 <body>
   <div class="legal-page location-page">
     <a href="/" class="back-link">&larr; Back to Fuel Price Checker</a>
-    <h1>Petrol &amp; Diesel Prices in ${escapeHtml(city.name)}</h1>
-    <p class="last-updated">Prices updated ${updated} &middot; showing stations within ${RADIUS_MILES} miles of ${escapeHtml(city.name)} city centre</p>
+    <header class="topbar">
+      <h1>&#9981; Petrol &amp; Diesel Prices in ${escapeHtml(city.name)}</h1>
+      <p class="last-updated">Updated ${updated} &middot; within ${RADIUS_MILES} miles of ${escapeHtml(city.name)} city centre</p>
+    </header>
+
+    ${statsSummary(fuelData)}
 
     <p>Looking for the cheapest place to fill up in ${escapeHtml(city.name)}? Below are the current lowest petrol and diesel prices from stations near the city centre, pulled live from the UK government's Fuel Finder open data scheme and updated regularly throughout the day.</p>
 
@@ -118,7 +148,7 @@ function renderLocationPage(city, cache, allCities) {
     <p><a href="/?lat=${city.lat}&amp;lon=${city.lon}&amp;name=${encodeURIComponent(city.name)}" class="cta-link">Search all fuel types and EV charging near ${escapeHtml(city.name)} &rarr;</a></p>
 
     <h2>Nearby locations</h2>
-    <p>${nearbyCityLinks(city, allCities)}</p>
+    <p class="city-chip-row">${nearbyCityLinks(city, allCities)}</p>
 
     <p class="footer-links"><a href="/petrol-prices">All locations</a> &middot; <a href="/privacy.html">Privacy Policy</a></p>
   </div>
@@ -129,7 +159,7 @@ function renderLocationPage(city, cache, allCities) {
 function renderLocationsIndex(allCities) {
   const links = [...allCities]
     .sort((a, b) => a.name.localeCompare(b.name))
-    .map((c) => `<li><a href="/petrol-prices/${c.slug}">${escapeHtml(c.name)}</a></li>`)
+    .map((c) => `<a class="city-chip" href="/petrol-prices/${c.slug}">${escapeHtml(c.name)}</a>`)
     .join("");
 
   return `<!doctype html>
@@ -145,9 +175,12 @@ function renderLocationsIndex(allCities) {
 <body>
   <div class="legal-page location-page">
     <a href="/" class="back-link">&larr; Back to Fuel Price Checker</a>
-    <h1>Petrol &amp; Diesel Prices by City</h1>
-    <p>Choose a location to see today's cheapest petrol and diesel prices nearby.</p>
-    <ul class="city-list">${links}</ul>
+    <header class="topbar">
+      <h1>&#9981; Petrol &amp; Diesel Prices by City</h1>
+      <p class="last-updated">Choose a location to see today's cheapest fuel nearby</p>
+    </header>
+    <p class="city-chip-row city-chip-grid">${links}</p>
+    <p class="footer-links"><a href="/">Back to Fuel Price Checker</a> &middot; <a href="/privacy.html">Privacy Policy</a></p>
   </div>
 </body>
 </html>`;

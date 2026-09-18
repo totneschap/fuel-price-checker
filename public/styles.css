@@ -585,39 +585,58 @@ input, select {
   color: var(--muted);
 }
 
-.location-page .price-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 12px 0 24px;
-  font-size: 0.9rem;
+.location-page {
+  max-width: 760px;
 }
 
-.location-page .price-table th,
-.location-page .price-table td {
-  text-align: left;
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--border);
+.location-page .topbar {
+  text-align: center;
+  padding-top: 8px;
 }
 
-.location-page .price-table th {
-  color: var(--muted);
-  font-weight: 600;
-  font-size: 0.8rem;
+.location-page .loc-results {
+  margin: 12px 0 28px;
 }
 
-.location-page .price-table tr:first-child td {
-  font-weight: 700;
-  color: var(--accent);
-}
-
-.location-page .price-cell {
-  font-weight: 700;
-  white-space: nowrap;
+.location-page .loc-brand-logo {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
 }
 
 .location-page .empty-note {
   color: var(--muted);
   font-style: italic;
+}
+
+.location-page .stats-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0 20px;
+}
+
+.location-page .stat-chip {
+  flex: 1 1 140px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  text-align: center;
+}
+
+.location-page .stat-value {
+  display: block;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.location-page .stat-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 2px;
 }
 
 .location-page .cta-link {
@@ -643,29 +662,28 @@ input, select {
   color: var(--muted);
 }
 
-.location-page .city-list {
-  columns: 2;
-  gap: 24px;
-  padding-left: 20px;
+.location-page .city-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-@media (min-width: 500px) {
-  .location-page .city-list {
-    columns: 3;
-  }
+.location-page .city-chip {
+  display: inline-block;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  text-decoration: none;
+  color: var(--text);
 }
 
-.location-page .city-list li {
-  margin-bottom: 6px;
-  break-inside: avoid;
+.location-page .city-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
-@media (max-width: 500px) {
-  .location-page .price-table {
-    font-size: 0.78rem;
-  }
-  .location-page .price-table th,
-  .location-page .price-table td {
-    padding: 6px 4px;
-  }
+.location-page .city-chip-grid {
+  margin-top: 16px;
 }
