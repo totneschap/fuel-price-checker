@@ -25,6 +25,13 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 }).addTo(map);
 let markers = [];
 
+// The layout switches between stacked (mobile) and side-by-side (desktop) at 900px,
+// which resizes the map's container - Leaflet needs telling so it redraws correctly.
+// The setTimeout also covers the container not being at its final size yet at the
+// instant the map is constructed (e.g. Leaflet's own CSS still loading).
+window.addEventListener("resize", () => map.invalidateSize());
+setTimeout(() => map.invalidateSize(), 0);
+
 let lastCoords = null; // { lat, lon } from geolocation, cleared when postcode is typed
 
 postcodeInput.addEventListener("input", () => {
@@ -128,6 +135,7 @@ function renderResults(data) {
   });
 
   bounds.push([data.origin.lat, data.origin.lon]);
+  map.invalidateSize();
   map.fitBounds(bounds, { padding: [30, 30], maxZoom: 13 });
 }
 
@@ -181,6 +189,7 @@ function renderEvResults(data) {
   });
 
   bounds.push([data.origin.lat, data.origin.lon]);
+  map.invalidateSize();
   map.fitBounds(bounds, { padding: [30, 30], maxZoom: 13 });
 }
 

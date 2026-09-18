@@ -8,75 +8,81 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="topbar">
-    <h1><span id="mode-emoji">⛽</span> Fuel Price Checker</h1>
-    <p id="feed-status" class="feed-status">Loading price feeds…</p>
-  </header>
+  <div class="app-layout">
+    <div class="sidebar-top">
+      <header class="topbar">
+        <h1><span id="mode-emoji">⛽</span> Fuel Price Checker</h1>
+        <p id="feed-status" class="feed-status">Loading price feeds…</p>
+      </header>
 
-  <div class="mode-tabs" role="tablist">
-    <button type="button" class="mode-tab active" id="tab-petrol" data-mode="petrol">⛽ Petrol/Diesel</button>
-    <button type="button" class="mode-tab" id="tab-ev" data-mode="ev">🔌 EV Charging</button>
-  </div>
-
-  <form id="search-form" class="search-form">
-    <div class="field">
-      <label for="postcode">Postcode</label>
-      <div class="postcode-row">
-        <input id="postcode" type="text" placeholder="e.g. SW1A 1AA" autocomplete="postal-code" />
-        <button type="button" id="locate-btn" title="Use my current location">📍</button>
+      <div class="mode-tabs" role="tablist">
+        <button type="button" class="mode-tab active" id="tab-petrol" data-mode="petrol">⛽ Petrol/Diesel</button>
+        <button type="button" class="mode-tab" id="tab-ev" data-mode="ev">🔌 EV Charging</button>
       </div>
+
+      <form id="search-form" class="search-form">
+        <div class="field">
+          <label for="postcode">Postcode</label>
+          <div class="postcode-row">
+            <input id="postcode" type="text" placeholder="e.g. SW1A 1AA" autocomplete="postal-code" />
+            <button type="button" id="locate-btn" title="Use my current location">📍</button>
+          </div>
+        </div>
+
+        <div class="field" id="fuel-field">
+          <label for="fuel">Fuel</label>
+          <select id="fuel">
+            <option value="E10">Unleaded (E10)</option>
+            <option value="E5">Super Unleaded (E5)</option>
+            <option value="B7">Diesel (B7)</option>
+            <option value="SDV">Super Diesel (SDV)</option>
+            <option value="B10">B10 Diesel</option>
+            <option value="HVO">HVO</option>
+          </select>
+        </div>
+
+        <div class="field" id="connector-field" hidden>
+          <label for="connector">Connector</label>
+          <select id="connector">
+            <option value="">Any</option>
+            <option value="CCS">CCS</option>
+            <option value="CHAdeMO">CHAdeMO</option>
+            <option value="Type 2">Type 2</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="radius">Radius</label>
+          <select id="radius">
+            <option value="3">3 miles</option>
+            <option value="5" selected>5 miles</option>
+            <option value="10">10 miles</option>
+            <option value="20">20 miles</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="sort">Sort by</label>
+          <select id="sort">
+            <option value="price">Cheapest first</option>
+            <option value="distance">Nearest first</option>
+            <option value="power" id="sort-power" hidden>Fastest charger</option>
+          </select>
+        </div>
+
+        <button type="submit" class="search-btn" id="search-btn">Find fuel prices</button>
+      </form>
+
+      <p id="error" class="error" hidden></p>
+      <p id="ev-price-note" class="ev-price-note" hidden>Prices shown are typical pay-as-you-go rates for each network, not live per-station prices — always check the charger or app before paying.</p>
     </div>
 
-    <div class="field" id="fuel-field">
-      <label for="fuel">Fuel</label>
-      <select id="fuel">
-        <option value="E10">Unleaded (E10)</option>
-        <option value="E5">Super Unleaded (E5)</option>
-        <option value="B7">Diesel (B7)</option>
-        <option value="SDV">Super Diesel (SDV)</option>
-        <option value="B10">B10 Diesel</option>
-        <option value="HVO">HVO</option>
-      </select>
+    <div class="map-panel">
+      <div id="map"></div>
     </div>
 
-    <div class="field" id="connector-field" hidden>
-      <label for="connector">Connector</label>
-      <select id="connector">
-        <option value="">Any</option>
-        <option value="CCS">CCS</option>
-        <option value="CHAdeMO">CHAdeMO</option>
-        <option value="Type 2">Type 2</option>
-      </select>
-    </div>
-
-    <div class="field">
-      <label for="radius">Radius</label>
-      <select id="radius">
-        <option value="3">3 miles</option>
-        <option value="5" selected>5 miles</option>
-        <option value="10">10 miles</option>
-        <option value="20">20 miles</option>
-      </select>
-    </div>
-
-    <div class="field">
-      <label for="sort">Sort by</label>
-      <select id="sort">
-        <option value="price">Cheapest first</option>
-        <option value="distance">Nearest first</option>
-        <option value="power" id="sort-power" hidden>Fastest charger</option>
-      </select>
-    </div>
-
-    <button type="submit" class="search-btn" id="search-btn">Find fuel prices</button>
-  </form>
-
-  <p id="error" class="error" hidden></p>
-  <p id="ev-price-note" class="ev-price-note" hidden>Prices shown are typical pay-as-you-go rates for each network, not live per-station prices — always check the charger or app before paying.</p>
-
-  <div id="map"></div>
-
-  <ul id="results" class="results"></ul>
+    <ul id="results" class="results"></ul>
+  </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="app.js"></script>
