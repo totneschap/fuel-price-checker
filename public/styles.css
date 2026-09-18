@@ -412,11 +412,52 @@ input, select {
 }
 
 .popup-hours {
+  font-size: 0.78rem;
+  margin-bottom: 6px;
+}
+
+.popup-hours summary {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.78rem;
-  margin-bottom: 6px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.popup-hours summary::-webkit-details-marker {
+  display: none;
+}
+
+.popup-hours summary::after {
+  content: "\25BE";
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.popup-hours[open] summary::after {
+  content: "\25B4";
+}
+
+.popup-hours-week {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.popup-hours-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.popup-hours-row.today {
+  color: var(--text);
+  font-weight: 600;
 }
 
 .popup-badge {
@@ -454,6 +495,12 @@ input, select {
 
 .popup-distance {
   font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.popup-changed {
+  font-size: 0.72rem;
   color: var(--muted);
   margin-bottom: 8px;
 }

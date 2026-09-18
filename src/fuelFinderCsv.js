@@ -90,6 +90,30 @@ function extractAmenities(row) {
   return amenities.length > 0 ? amenities : null;
 }
 
+// The CSV's price_change_effective_timestamp columns are plain JS Date.toString()
+// output (e.g. "Mon Sep 14 2026 15:08:57 GMT+0000 (Coordinated Universal Time)"),
+// parseable directly. This is per fuel type, not per station, since different grades
+// can change price on different days.
+const TIMESTAMP_COLUMNS = {
+  E5: "forecourts.price_change_effective_timestamp.E5",
+  E10: "forecourts.price_change_effective_timestamp.E10",
+  B7: "forecourts.price_change_effective_timestamp.B7S",
+  SDV: "forecourts.price_change_effective_timestamp.B7P",
+  B10: "forecourts.price_change_effective_timestamp.B10",
+  HVO: "forecourts.price_change_effective_timestamp.HVO"
+};
+
+function extractPriceChangedAt(row) {
+  const result = {};
+  for (const [code, column] of Object.entries(TIMESTAMP_COLUMNS)) {
+    const raw = row[column];
+    if (!raw) continue;
+    const parsed = new Date(raw);
+    if (!Number.isNaN(parsed.getTime())) result[code] = parsed.toISOString();
+  }
+  return Object.keys(result).length > 0 ? result : null;
+}
+
 function normalizeRow(row) {
   const lat = toNumber(row["forecourts.location.latitude"]);
   const lon = toNumber(row["forecourts.location.longitude"]);
@@ -120,7 +144,8 @@ function normalizeRow(row) {
     lon,
     prices,
     openingTimes: extractOpeningTimes(row),
-    amenities: extractAmenities(row)
+    amenities: extractAmenities(row),
+    priceChangedAt: extractPriceChangedAt(row)
   };
 }
 

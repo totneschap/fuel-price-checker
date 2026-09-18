@@ -110,24 +110,49 @@ function isOpenAt(nowMinutes, open, close) {
   return nowMinutes >= openMin && nowMinutes <= closeMin;
 }
 
+const DAY_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+const DAY_LABELS = { monday: "Mon", tuesday: "Tue", wednesday: "Wed", thursday: "Thu", friday: "Fri", saturday: "Sat", sunday: "Sun" };
+
+function formatDayHours(day) {
+  if (!day) return "Hours not published";
+  if (day.is24h) return "Open 24 hours";
+  if (day.open && day.close) return `${day.open}–${day.close}`;
+  return "Hours not published";
+}
+
+// A <details> disclosure so the popup stays compact (today's status + hours on one
+// line) while still letting anyone check the full week without a second click elsewhere.
 function openingHoursHtml(openingTimes) {
   if (!openingTimes) return "";
   const now = new Date();
-  const today = openingTimes[DAY_KEYS[now.getDay()]];
-  if (!today) return "";
+  const todayKey = DAY_KEYS[now.getDay()];
+  const today = openingTimes[todayKey];
 
-  let hoursText, isOpen;
-  if (today.is24h) {
-    hoursText = "Open 24 hours";
-    isOpen = true;
-  } else if (today.open && today.close) {
-    hoursText = `Today: ${today.open}–${today.close}`;
-    isOpen = isOpenAt(now.getHours() * 60 + now.getMinutes(), today.open, today.close);
-  } else {
-    return "";
+  let summaryHtml = "<span>Opening hours</span>";
+  if (today) {
+    if (today.is24h) {
+      summaryHtml = `<span class="popup-badge open">Open now</span><span>Open 24 hours</span>`;
+    } else if (today.open && today.close) {
+      const isOpen = isOpenAt(now.getHours() * 60 + now.getMinutes(), today.open, today.close);
+      summaryHtml = `<span class="popup-badge ${isOpen ? "open" : "closed"}">${isOpen ? "Open now" : "Closed"}</span><span>Today: ${today.open}–${today.close}</span>`;
+    }
   }
 
-  return `<div class="popup-hours"><span class="popup-badge ${isOpen ? "open" : "closed"}">${isOpen ? "Open now" : "Closed"}</span><span>${hoursText}</span></div>`;
+  const weekRows = DAY_ORDER.map(
+    (day) =>
+      `<div class="popup-hours-row${day === todayKey ? " today" : ""}"><span>${DAY_LABELS[day]}</span><span>${formatDayHours(openingTimes[day])}</span></div>`
+  ).join("");
+
+  return `<details class="popup-hours"><summary>${summaryHtml}</summary><div class="popup-hours-week">${weekRows}</div></details>`;
+}
+
+function formatChangedAt(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const datePart = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  const timePart = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+  return `${datePart}, ${timePart}`;
 }
 
 const AMENITY_LABELS = {
@@ -179,6 +204,7 @@ function stationPopupHtml(station, price, fuelCode) {
       ${openingHoursHtml(station.openingTimes)}
       ${amenitiesHtml(station.amenities)}
       <div class="popup-distance">${station.distance.toFixed(1)} mi away</div>
+      ${formatChangedAt(station.priceChangedAt?.[fuelCode]) ? `<div class="popup-changed">Price last changed ${formatChangedAt(station.priceChangedAt[fuelCode])}</div>` : ""}
       <a class="popup-directions" href="${directionsUrl(station.lat, station.lon)}" target="_blank" rel="noopener">Get directions</a>
     </div>
   `;

@@ -120,12 +120,16 @@ function extractOpeningTimes(info) {
 
 function normalizePrices(feedPrices) {
   const prices = {};
+  const priceChangedAt = {};
   for (const entry of feedPrices || []) {
     const mapped = FUEL_TYPE_MAP[entry.fuel_type] || entry.fuel_type;
     const price = Number(entry.price);
-    if (mapped && Number.isFinite(price)) prices[mapped] = price;
+    if (!mapped || !Number.isFinite(price)) continue;
+    prices[mapped] = price;
+    // Already ISO 8601/RFC 3339 per the API docs - no parsing needed.
+    if (entry.price_change_effective_timestamp) priceChangedAt[mapped] = entry.price_change_effective_timestamp;
   }
-  return prices;
+  return { prices, priceChangedAt };
 }
 
 async function fetchStations() {
@@ -143,7 +147,7 @@ async function fetchStations() {
       const priceRecord = priceByNodeId.get(info.node_id);
       if (!priceRecord) return null;
 
-      const prices = normalizePrices(priceRecord.fuel_prices);
+      const { prices, priceChangedAt } = normalizePrices(priceRecord.fuel_prices);
       if (Object.keys(prices).length === 0) return null;
 
       const lat = Number(info.location?.latitude);
@@ -164,7 +168,8 @@ async function fetchStations() {
         lon,
         prices,
         openingTimes: extractOpeningTimes(info),
-        amenities: Array.isArray(info.amenities) && info.amenities.length > 0 ? info.amenities : null
+        amenities: Array.isArray(info.amenities) && info.amenities.length > 0 ? info.amenities : null,
+        priceChangedAt: Object.keys(priceChangedAt).length > 0 ? priceChangedAt : null
       };
     })
     .filter(Boolean);
