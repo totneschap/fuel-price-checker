@@ -19,6 +19,45 @@ const tabEv = document.getElementById("tab-ev");
 
 let mode = "petrol"; // or "ev"
 
+// Brand/network name -> a domain with a recognisable favicon, used to show a small
+// logo on map pins. Uses Google's favicon service (stable and keyless) rather than a
+// dedicated logo API - Clearbit's free logo API is dead, and most "free" replacements
+// turned out not to actually serve images. Matching is case-insensitive and loose
+// since brand names vary in casing/spacing across feeds (e.g. "ASDA" vs "Asda").
+const BRAND_LOGO_DOMAINS = [
+  { match: /asda/i, domain: "www.asda.com" },
+  { match: /tesco/i, domain: "www.tesco.com" },
+  { match: /morrisons/i, domain: "www.morrisons.com" },
+  { match: /sainsbury/i, domain: "www.sainsburys.co.uk" },
+  { match: /\bbp\b/i, domain: "www.bp.com" },
+  { match: /shell/i, domain: "www.shell.co.uk" },
+  { match: /esso/i, domain: "www.esso.co.uk" },
+  { match: /texaco/i, domain: "www.texaco.co.uk" },
+  { match: /jet/i, domain: "www.jetlocal.co.uk" },
+  { match: /gulf/i, domain: "gulfoil.com" },
+  { match: /applegreen/i, domain: "www.applegreenstores.com" },
+  { match: /circle\s*k/i, domain: "www.circlek.com" },
+  { match: /\bspar\b/i, domain: "www.spar.co.uk" },
+  { match: /\bmoto\b/i, domain: "www.moto-way.com" },
+  { match: /welcome\s*break/i, domain: "www.welcomebreak.co.uk" },
+  { match: /murco/i, domain: "murco.co.uk" },
+  { match: /maxol/i, domain: "maxol.ie" },
+  // EV networks
+  { match: /instavolt/i, domain: "www.instavolt.co.uk" },
+  { match: /tesla/i, domain: "www.tesla.com" },
+  { match: /ionity/i, domain: "ionity.eu" },
+  { match: /gridserve/i, domain: "www.gridserve.com" },
+  { match: /osprey/i, domain: "www.ospreycharging.co.uk" },
+  { match: /pod\s*point/i, domain: "pod-point.com" },
+  { match: /motor\s*fuel\s*group|\bmfg\b/i, domain: "motorfuelgroup.com" }
+];
+
+function brandLogoUrl(brand) {
+  if (!brand) return null;
+  const found = BRAND_LOGO_DOMAINS.find((b) => b.match.test(brand));
+  return found ? `https://www.google.com/s2/favicons?domain=${found.domain}&sz=64` : null;
+}
+
 let map = L.map("map").setView([54.5, -3], 5);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "&copy; OpenStreetMap contributors"
@@ -95,10 +134,13 @@ function clearMarkers() {
   markers = [];
 }
 
-function priceIcon(label, priceClass) {
+function priceIcon(label, priceClass, logoUrl) {
+  const logoHtml = logoUrl
+    ? `<img class="price-pin-logo" src="${logoUrl}" alt="" onerror="this.remove()" />`
+    : "";
   return L.divIcon({
     className: "price-pin-wrapper",
-    html: `<div class="price-pin ${priceClass}">${label}</div>`,
+    html: `<div class="price-pin ${priceClass}">${logoHtml}<span>${label}</span></div>`,
     iconSize: [1, 1], // the inner div sizes itself; Leaflet just needs a non-zero box
     iconAnchor: [0, 0],
     popupAnchor: [0, -34]
@@ -138,7 +180,7 @@ function renderResults(data) {
     resultsEl.appendChild(li);
 
     const marker = L.marker([station.lat, station.lon], {
-      icon: priceIcon(`${price.toFixed(1)}p`, priceClass)
+      icon: priceIcon(`${price.toFixed(1)}p`, priceClass, brandLogoUrl(station.brand))
     })
       .addTo(map)
       .bindPopup(`<b>${station.brand}</b><br>${station.address}<br>${price.toFixed(1)}p / L`);
@@ -194,7 +236,7 @@ function renderEvResults(data) {
     resultsEl.appendChild(li);
 
     const marker = L.marker([station.lat, station.lon], {
-      icon: priceIcon(typeof price === "number" ? `${price}p` : "?", priceClass)
+      icon: priceIcon(typeof price === "number" ? `${price}p` : "?", priceClass, brandLogoUrl(station.operator))
     })
       .addTo(map)
       .bindPopup(`<b>${station.operator}</b><br>${station.name}<br>${connectorSummary}${typeof price === "number" ? `<br>~${price}p/kWh` : ""}`);
