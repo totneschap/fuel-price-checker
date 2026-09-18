@@ -11,6 +11,8 @@
 // (Sept 2026) - the public docs describe fields but never publish the literal URLs,
 // so this isn't guesswork: token endpoint is JSON (not form-encoded, unlike a standard
 // OAuth2 client-credentials request), and the token comes back nested under `data`.
+const { normalizeCountry } = require("./ukCountry");
+
 const FUEL_TYPE_MAP = {
   E10: "E10",
   E5: "E5",
@@ -164,6 +166,7 @@ async function fetchStations() {
         brand: info.brand_name || info.trading_name || "Unknown",
         address,
         postcode: info.location?.postcode || "",
+        country: normalizeCountry(info.location?.country),
         lat,
         lon,
         prices,

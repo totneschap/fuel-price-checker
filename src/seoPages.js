@@ -150,7 +150,7 @@ function renderLocationPage(city, cache, allCities) {
     <h2>Nearby locations</h2>
     <p class="city-chip-row">${nearbyCityLinks(city, allCities)}</p>
 
-    <p class="footer-links"><a href="/petrol-prices">All locations</a> &middot; <a href="/privacy.html">Privacy Policy</a></p>
+    <p class="footer-links"><a href="/petrol-prices">All locations</a> &middot; <a href="/uk-fuel-prices-live">UK prices live</a> &middot; <a href="/privacy.html">Privacy Policy</a></p>
   </div>
 </body>
 </html>`;
@@ -187,7 +187,7 @@ function renderLocationsIndex(allCities) {
 }
 
 function renderSitemap(allCities) {
-  const staticUrls = ["/", "/petrol-prices", "/privacy.html"];
+  const staticUrls = ["/", "/petrol-prices", "/uk-fuel-prices-live", "/privacy.html"];
   const cityUrls = allCities.map((c) => `/petrol-prices/${c.slug}`);
   const urls = [...staticUrls, ...cityUrls]
     .map((path) => `  <url><loc>${BASE_URL}${path}</loc></url>`)

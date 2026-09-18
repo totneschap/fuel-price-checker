@@ -7,6 +7,8 @@ const { milesBetween } = require("./src/distance");
 const evChargePoints = require("./src/evChargePoints");
 const cities = require("./src/cities");
 const { renderLocationPage, renderLocationsIndex, renderSitemap } = require("./src/seoPages");
+const priceHistory = require("./src/priceHistory");
+const { renderNationalDashboard } = require("./src/nationalDashboard");
 
 const PORT = process.env.PORT || 3000;
 const REFRESH_INTERVAL_MS = 20 * 60 * 1000; // 20 minutes
@@ -136,15 +138,55 @@ app.get("/sitemap.xml", (req, res) => {
   res.type("application/xml").send(renderSitemap(cities));
 });
 
+app.get("/uk-fuel-prices-live", async (req, res) => {
+  try {
+    const cache = getCache();
+    let movers = null;
+    if (priceHistory.isConfigured()) {
+      const [e10, b7] = await Promise.all([
+        priceHistory.getMovers(cache.stations, "E10", 5),
+        priceHistory.getMovers(cache.stations, "B7", 5)
+      ]);
+      movers = { E10: e10, B7: b7 };
+    }
+    res.send(renderNationalDashboard(cache, movers));
+  } catch (err) {
+    res.status(500).send(`Failed to build dashboard: ${err.message}`);
+  }
+});
+
+async function snapshotForHistory(cache) {
+  if (!priceHistory.isConfigured()) return;
+  try {
+    const result = await priceHistory.maybeSnapshot(cache.stations);
+    if (result.taken) console.log(`Price history snapshot taken: ${result.rowCount} rows`);
+  } catch (err) {
+    console.error("Price history snapshot failed:", err.message);
+  }
+}
+
 app.listen(PORT, async () => {
   console.log(`Fuel price checker running at http://localhost:${PORT}`);
+
+  if (priceHistory.isConfigured()) {
+    try {
+      await priceHistory.ensureSchema();
+    } catch (err) {
+      console.error("Price history schema setup failed:", err.message);
+    }
+  }
+
   try {
     const cache = await refreshPrices();
     console.log(`Loaded ${cache.stations.length} stations from ${cache.retailerStatus.filter(r => r.ok).length}/${cache.retailerStatus.length} retailers`);
+    await snapshotForHistory(cache);
   } catch (err) {
     console.error("Initial price fetch failed:", err.message);
   }
+
   setInterval(() => {
-    refreshPrices().catch((err) => console.error("Price refresh failed:", err.message));
+    refreshPrices()
+      .then((cache) => snapshotForHistory(cache))
+      .catch((err) => console.error("Price refresh failed:", err.message));
   }, REFRESH_INTERVAL_MS);
 });

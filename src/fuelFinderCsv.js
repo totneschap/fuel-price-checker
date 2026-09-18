@@ -9,6 +9,7 @@
 const fs = require("fs/promises");
 const path = require("path");
 const { parse } = require("csv-parse/sync");
+const { normalizeCountry } = require("./ukCountry");
 
 const DATA_DIR = path.join(__dirname, "..", "data");
 
@@ -146,6 +147,7 @@ function normalizeRow(row) {
     brand: row["forecourts.brand_name"] || row["forecourts.trading_name"] || "Unknown",
     address,
     postcode: row["forecourts.location.postcode"] || "",
+    country: normalizeCountry(row["forecourts.location.country"]),
     lat,
     lon,
     prices,

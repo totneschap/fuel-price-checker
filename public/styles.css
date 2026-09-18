@@ -700,3 +700,47 @@ input, select {
 .location-page .city-chip-grid {
   margin-top: 16px;
 }
+
+.location-page hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 32px 0;
+}
+
+.location-page .regional-list {
+  padding-left: 20px;
+  margin: 12px 0 24px;
+}
+
+.location-page .regional-list li {
+  margin-bottom: 6px;
+}
+
+.location-page .movers-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+@media (min-width: 640px) {
+  .location-page .movers-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.location-page .movers-grid h3 {
+  margin-top: 0;
+}
+
+.location-page .mover-arrow {
+  font-size: 0.7rem;
+}
+
+.location-page .mover-arrow.cheap {
+  color: var(--cheap);
+}
+
+.location-page .mover-arrow.pricey {
+  color: var(--pricey);
+}
