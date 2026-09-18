@@ -295,6 +295,16 @@ function clearMarkers() {
   markers = [];
 }
 
+// Clicking a result in the list pans/zooms the map to that station and opens its
+// popup, same as clicking the pin directly. On mobile, where the map sits above the
+// results list, this also scrolls it into view since it'd otherwise be off-screen.
+function focusStation(station, marker) {
+  map.invalidateSize();
+  map.flyTo([station.lat, station.lon], Math.max(map.getZoom(), 15), { duration: 0.5 });
+  marker.openPopup();
+  map.getContainer().scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function priceIcon(label, priceClass, logoUrl) {
   const logoHtml = logoUrl
     ? `<img class="price-pin-logo" src="${logoUrl}" alt="" onerror="this.remove()" />`
@@ -347,6 +357,8 @@ function renderResults(data) {
       .bindPopup(stationPopupHtml(station, price, data.fuel), { maxWidth: 260, minWidth: 220 });
     markers.push(marker);
     bounds.push([station.lat, station.lon]);
+
+    li.addEventListener("click", () => focusStation(station, marker));
   });
 
   bounds.push([data.origin.lat, data.origin.lon]);
@@ -415,6 +427,8 @@ function renderEvResults(data) {
       .bindPopup(evPopup, { maxWidth: 240, minWidth: 200 });
     markers.push(marker);
     bounds.push([station.lat, station.lon]);
+
+    li.addEventListener("click", () => focusStation(station, marker));
   });
 
   bounds.push([data.origin.lat, data.origin.lon]);

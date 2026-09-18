@@ -231,6 +231,16 @@ input, select {
   padding: 12px 14px;
 }
 
+/* Only the main app's results are clickable (they focus the map) - scoped by #results
+   since the SEO/dashboard pages reuse .station-card for plain, non-interactive lists. */
+#results .station-card {
+  cursor: pointer;
+}
+
+#results .station-card:hover {
+  border-color: var(--accent);
+}
+
 .station-info {
   min-width: 0;
 }
