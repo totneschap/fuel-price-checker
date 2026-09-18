@@ -58,6 +58,132 @@ function brandLogoUrl(brand) {
   return found ? `https://www.google.com/s2/favicons?domain=${found.domain}&sz=64` : null;
 }
 
+const FUEL_LABELS = {
+  E10: "Unleaded (E10)",
+  E5: "Super Unleaded (E5)",
+  B7: "Diesel (B7)",
+  SDV: "Super Diesel (SDV)",
+  B10: "B10 Diesel",
+  HVO: "HVO"
+};
+
+// UK fuel duty is a fixed rate set by government budgets, not something retailers
+// choose - this schedule is public record. Update it when a new rate takes effect;
+// see https://www.gov.uk/government/publications/amended-fuel-duty-rates-for-2026-to-2027
+const FUEL_DUTY_SCHEDULE = [
+  { from: "2026-03-01", pencePerLitre: 52.95 },
+  { from: "2026-09-01", pencePerLitre: 53.95 },
+  { from: "2026-12-01", pencePerLitre: 55.95 },
+  { from: "2027-03-01", pencePerLitre: 57.95 }
+];
+
+function currentFuelDuty() {
+  const now = new Date();
+  let rate = FUEL_DUTY_SCHEDULE[0].pencePerLitre;
+  for (const entry of FUEL_DUTY_SCHEDULE) {
+    if (now >= new Date(entry.from)) rate = entry.pencePerLitre;
+  }
+  return rate;
+}
+
+// VAT is 20% of the VAT-inclusive pump price, i.e. 1/6 of the total - not 20% of the
+// pre-VAT price. Duty is a fixed pence-per-litre amount; whatever's left is the
+// retailer's fuel cost, supply chain and margin.
+function priceBreakdown(pricePence) {
+  const duty = currentFuelDuty();
+  const vat = pricePence / 6;
+  const retail = pricePence - duty - vat;
+  return { duty, vat, retail };
+}
+
+const DAY_KEYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+
+function minutesSinceMidnight(hhmm) {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function isOpenAt(nowMinutes, open, close) {
+  const openMin = minutesSinceMidnight(open);
+  let closeMin = minutesSinceMidnight(close);
+  if (closeMin <= openMin) closeMin += 24 * 60; // closing time past midnight
+  return nowMinutes >= openMin && nowMinutes <= closeMin;
+}
+
+function openingHoursHtml(openingTimes) {
+  if (!openingTimes) return "";
+  const now = new Date();
+  const today = openingTimes[DAY_KEYS[now.getDay()]];
+  if (!today) return "";
+
+  let hoursText, isOpen;
+  if (today.is24h) {
+    hoursText = "Open 24 hours";
+    isOpen = true;
+  } else if (today.open && today.close) {
+    hoursText = `Today: ${today.open}–${today.close}`;
+    isOpen = isOpenAt(now.getHours() * 60 + now.getMinutes(), today.open, today.close);
+  } else {
+    return "";
+  }
+
+  return `<div class="popup-hours"><span class="popup-badge ${isOpen ? "open" : "closed"}">${isOpen ? "Open now" : "Closed"}</span><span>${hoursText}</span></div>`;
+}
+
+const AMENITY_LABELS = {
+  adblue_pumps: "AdBlue",
+  adblue_packaged: "AdBlue",
+  lpg_pumps: "LPG",
+  car_wash: "Car wash",
+  air_pump_or_screenwash: "Air/screenwash",
+  water_filling: "Water",
+  twenty_four_hour_fuel: "24hr fuel",
+  customer_toilets: "WC"
+};
+
+function amenitiesHtml(amenities) {
+  if (!amenities || amenities.length === 0) return "";
+  const seen = new Set();
+  const chips = amenities
+    .map((a) => AMENITY_LABELS[a])
+    .filter((label) => label && !seen.has(label) && seen.add(label))
+    .map((label) => `<span class="popup-chip">${label}</span>`)
+    .join("");
+  return chips ? `<div class="popup-chip-row">${chips}</div>` : "";
+}
+
+function directionsUrl(lat, lon) {
+  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+}
+
+function stationPopupHtml(station, price, fuelCode) {
+  const { duty, vat, retail } = priceBreakdown(price);
+  const logoUrl = brandLogoUrl(station.brand);
+
+  return `
+    <div class="popup-card">
+      <div class="popup-price">${price.toFixed(1)}p</div>
+      <div class="popup-price-sub">per litre &middot; ${FUEL_LABELS[fuelCode] || fuelCode}</div>
+      <div class="popup-breakdown-bar">
+        <div style="width:${(retail / price) * 100}%; background:var(--accent)"></div>
+        <div style="width:${(duty / price) * 100}%; background:#6b7280"></div>
+        <div style="width:${(vat / price) * 100}%; background:#b7bec7"></div>
+      </div>
+      <div class="popup-breakdown-legend">
+        <span><i style="background:var(--accent)"></i>Fuel, supply &amp; retail ${retail.toFixed(1)}p</span>
+        <span><i style="background:#6b7280"></i>Fuel duty ${duty.toFixed(1)}p</span>
+        <span><i style="background:#b7bec7"></i>VAT ${vat.toFixed(1)}p</span>
+      </div>
+      <div class="popup-brand">${logoUrl ? `<img src="${logoUrl}" alt="" onerror="this.remove()" />` : ""}${station.brand}</div>
+      <div class="popup-address">${station.address}${station.postcode ? ", " + station.postcode : ""}</div>
+      ${openingHoursHtml(station.openingTimes)}
+      ${amenitiesHtml(station.amenities)}
+      <div class="popup-distance">${station.distance.toFixed(1)} mi away</div>
+      <a class="popup-directions" href="${directionsUrl(station.lat, station.lon)}" target="_blank" rel="noopener">Get directions</a>
+    </div>
+  `;
+}
+
 let map = L.map("map").setView([54.5, -3], 5);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "&copy; OpenStreetMap contributors"
@@ -183,7 +309,7 @@ function renderResults(data) {
       icon: priceIcon(`${price.toFixed(1)}p`, priceClass, brandLogoUrl(station.brand))
     })
       .addTo(map)
-      .bindPopup(`<b>${station.brand}</b><br>${station.address}<br>${price.toFixed(1)}p / L`);
+      .bindPopup(stationPopupHtml(station, price, data.fuel), { maxWidth: 260, minWidth: 220 });
     markers.push(marker);
     bounds.push([station.lat, station.lon]);
   });
@@ -235,11 +361,23 @@ function renderEvResults(data) {
     `;
     resultsEl.appendChild(li);
 
+    const evLogoUrl = brandLogoUrl(station.operator);
+    const evPopup = `
+      <div class="popup-card">
+        <div class="popup-brand">${evLogoUrl ? `<img src="${evLogoUrl}" alt="" onerror="this.remove()" />` : ""}${station.operator}</div>
+        <div class="popup-address">${station.name}${station.postcode ? ", " + station.postcode : ""}</div>
+        <div class="popup-chip-row">${station.connections.map((c) => `<span class="popup-chip">${c.type}${c.powerKW ? ` ${c.powerKW}kW` : ""}</span>`).join("")}</div>
+        ${typeof price === "number" ? `<div class="popup-price-sub">~${price}p/kWh (${station.tariff.network} PAYG)</div>` : `<div class="popup-price-sub">Check the operator's app for pricing</div>`}
+        <div class="popup-distance">${station.distance.toFixed(1)} mi away</div>
+        <a class="popup-directions" href="${directionsUrl(station.lat, station.lon)}" target="_blank" rel="noopener">Get directions</a>
+      </div>
+    `;
+
     const marker = L.marker([station.lat, station.lon], {
-      icon: priceIcon(typeof price === "number" ? `${price}p` : "?", priceClass, brandLogoUrl(station.operator))
+      icon: priceIcon(typeof price === "number" ? `${price}p` : "?", priceClass, evLogoUrl)
     })
       .addTo(map)
-      .bindPopup(`<b>${station.operator}</b><br>${station.name}<br>${connectorSummary}${typeof price === "number" ? `<br>~${price}p/kWh` : ""}`);
+      .bindPopup(evPopup, { maxWidth: 240, minWidth: 200 });
     markers.push(marker);
     bounds.push([station.lat, station.lon]);
   });

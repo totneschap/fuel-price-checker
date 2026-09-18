@@ -336,3 +336,142 @@ input, select {
   color: var(--muted);
   padding: 24px 0;
 }
+
+.leaflet-popup-content-wrapper {
+  background: var(--card);
+  color: var(--text);
+  border-radius: 12px;
+}
+
+.leaflet-popup-tip {
+  background: var(--card);
+}
+
+.popup-card {
+  font-family: inherit;
+  color: var(--text);
+  min-width: 190px;
+}
+
+.popup-price {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1.1;
+}
+
+.popup-price-sub {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.popup-breakdown-bar {
+  display: flex;
+  height: 7px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.popup-breakdown-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.popup-breakdown-legend i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+
+.popup-brand {
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.popup-brand img {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+}
+
+.popup-address {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.popup-hours {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  margin-bottom: 6px;
+}
+
+.popup-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.popup-badge.open {
+  background: #e3f5ea;
+  color: var(--accent-dark);
+}
+
+.popup-badge.closed {
+  background: #fdecea;
+  color: var(--pricey);
+}
+
+.popup-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.popup-chip {
+  font-size: 0.68rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.popup-distance {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+/* Extra specificity needed to beat Leaflet's own ".leaflet-container a" link color rule */
+.leaflet-container a.popup-directions {
+  display: block;
+  text-align: center;
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 8px;
+  border-radius: 8px;
+  text-decoration: none;
+}
+
+.leaflet-container a.popup-directions:hover {
+  background: var(--accent-dark);
+  color: white;
+}

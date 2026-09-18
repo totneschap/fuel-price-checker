@@ -97,6 +97,27 @@ async function fetchAllPages(path, token) {
   return items;
 }
 
+const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+
+function extractOpeningTimes(info) {
+  const usualDays = info.opening_times?.usual_days;
+  if (!usualDays) return null;
+
+  const openingTimes = {};
+  for (const day of DAYS) {
+    const d = usualDays[day];
+    if (!d || (!d.open && !d.close && !d.is_24_hours)) continue;
+    openingTimes[day] = { open: d.open || null, close: d.close || null, is24h: Boolean(d.is_24_hours) };
+  }
+
+  const bh = info.opening_times?.bank_holidays;
+  if (bh && (bh.open_time || bh.close_time || bh.is_24_hours)) {
+    openingTimes.bankHoliday = { open: bh.open_time || null, close: bh.close_time || null, is24h: Boolean(bh.is_24_hours) };
+  }
+
+  return Object.keys(openingTimes).length > 0 ? openingTimes : null;
+}
+
 function normalizePrices(feedPrices) {
   const prices = {};
   for (const entry of feedPrices || []) {
@@ -141,7 +162,9 @@ async function fetchStations() {
         postcode: info.location?.postcode || "",
         lat,
         lon,
-        prices
+        prices,
+        openingTimes: extractOpeningTimes(info),
+        amenities: Array.isArray(info.amenities) && info.amenities.length > 0 ? info.amenities : null
       };
     })
     .filter(Boolean);
