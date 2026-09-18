@@ -159,7 +159,11 @@ async function snapshotForHistory(cache) {
   if (!priceHistory.isConfigured()) return;
   try {
     const result = await priceHistory.maybeSnapshot(cache.stations);
-    if (result.taken) console.log(`Price history snapshot taken: ${result.rowCount} rows`);
+    console.log(
+      result.taken
+        ? `Price history snapshot taken: ${result.rowCount} rows`
+        : "Price history snapshot skipped (recent one already exists)"
+    );
   } catch (err) {
     console.error("Price history snapshot failed:", err.message);
   }
@@ -171,9 +175,12 @@ app.listen(PORT, async () => {
   if (priceHistory.isConfigured()) {
     try {
       await priceHistory.ensureSchema();
+      console.log("Price history: connected to database");
     } catch (err) {
       console.error("Price history schema setup failed:", err.message);
     }
+  } else {
+    console.log("Price history: DATABASE_URL not set, movers section disabled");
   }
 
   try {
