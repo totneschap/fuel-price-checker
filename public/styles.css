@@ -711,6 +711,21 @@ input, select {
   margin-top: 16px;
 }
 
+.location-page .city-select {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .location-page .city-select {
+    display: block;
+    width: 100%;
+  }
+
+  .location-page .city-chip-grid {
+    display: none;
+  }
+}
+
 .location-page hr {
   border: none;
   border-top: 1px solid var(--border);

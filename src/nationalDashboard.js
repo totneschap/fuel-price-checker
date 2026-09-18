@@ -190,6 +190,7 @@ function renderNationalDashboard(cache, movers) {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <title>${title}</title>
   <meta name="description" content="${escapeHtml(description)}" />
   <link rel="canonical" href="${BASE_URL}/uk-fuel-prices-live" />

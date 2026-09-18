@@ -122,6 +122,7 @@ function renderLocationPage(city, cache, allCities) {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <title>${title}</title>
   <meta name="description" content="${escapeHtml(description)}" />
   <link rel="canonical" href="${canonicalUrl}" />
@@ -157,9 +158,12 @@ function renderLocationPage(city, cache, allCities) {
 }
 
 function renderLocationsIndex(allCities) {
-  const links = [...allCities]
-    .sort((a, b) => a.name.localeCompare(b.name))
+  const sorted = [...allCities].sort((a, b) => a.name.localeCompare(b.name));
+  const links = sorted
     .map((c) => `<a class="city-chip" href="/petrol-prices/${c.slug}">${escapeHtml(c.name)}</a>`)
+    .join("");
+  const options = sorted
+    .map((c) => `<option value="/petrol-prices/${c.slug}">${escapeHtml(c.name)}</option>`)
     .join("");
 
   return `<!doctype html>
@@ -167,6 +171,7 @@ function renderLocationsIndex(allCities) {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <title>Petrol &amp; Diesel Prices by UK City | UK Fuel Price Checker</title>
   <meta name="description" content="Compare live petrol and diesel prices in ${allCities.length} UK cities and towns. Pick your location to see the cheapest fuel nearby." />
   <link rel="canonical" href="${BASE_URL}/petrol-prices" />
@@ -179,6 +184,10 @@ function renderLocationsIndex(allCities) {
       <h1>&#9981; Petrol &amp; Diesel Prices by City</h1>
       <p class="last-updated">Choose a location to see today's cheapest fuel nearby</p>
     </header>
+    <select class="city-select" onchange="if (this.value) location.href = this.value">
+      <option value="">Choose a city&hellip;</option>
+      ${options}
+    </select>
     <p class="city-chip-row city-chip-grid">${links}</p>
     <p class="footer-links"><a href="/">Back to Fuel Price Checker</a> &middot; <a href="/privacy.html">Privacy Policy</a></p>
   </div>
