@@ -277,6 +277,48 @@ input, select {
 .station-price.cheap .pence { color: var(--cheap); }
 .station-price.pricey .pence { color: var(--pricey); }
 
+.price-pin {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -100%);
+  padding: 3px 7px;
+  border-radius: 12px;
+  background: var(--card);
+  border: 2px solid var(--accent);
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.price-pin::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  transform: translateX(-50%);
+  border-width: 7px 5px 0 5px;
+  border-style: solid;
+  border-color: var(--accent) transparent transparent transparent;
+}
+
+.price-pin.cheap {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.price-pin.pricey {
+  border-color: var(--pricey);
+}
+
+.price-pin.pricey::after {
+  border-color: var(--pricey) transparent transparent transparent;
+}
+
 .empty-state, .loading-state {
   text-align: center;
   color: var(--muted);

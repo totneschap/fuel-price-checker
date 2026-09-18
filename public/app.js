@@ -95,6 +95,16 @@ function clearMarkers() {
   markers = [];
 }
 
+function priceIcon(label, priceClass) {
+  return L.divIcon({
+    className: "price-pin-wrapper",
+    html: `<div class="price-pin ${priceClass}">${label}</div>`,
+    iconSize: [1, 1], // the inner div sizes itself; Leaflet just needs a non-zero box
+    iconAnchor: [0, 0],
+    popupAnchor: [0, -34]
+  });
+}
+
 function renderResults(data) {
   resultsEl.innerHTML = "";
   clearMarkers();
@@ -127,7 +137,9 @@ function renderResults(data) {
     `;
     resultsEl.appendChild(li);
 
-    const marker = L.marker([station.lat, station.lon])
+    const marker = L.marker([station.lat, station.lon], {
+      icon: priceIcon(`${price.toFixed(1)}p`, priceClass)
+    })
       .addTo(map)
       .bindPopup(`<b>${station.brand}</b><br>${station.address}<br>${price.toFixed(1)}p / L`);
     markers.push(marker);
@@ -181,7 +193,9 @@ function renderEvResults(data) {
     `;
     resultsEl.appendChild(li);
 
-    const marker = L.marker([station.lat, station.lon])
+    const marker = L.marker([station.lat, station.lon], {
+      icon: priceIcon(typeof price === "number" ? `${price}p` : "?", priceClass)
+    })
       .addTo(map)
       .bindPopup(`<b>${station.operator}</b><br>${station.name}<br>${connectorSummary}${typeof price === "number" ? `<br>~${price}p/kWh` : ""}`);
     markers.push(marker);
