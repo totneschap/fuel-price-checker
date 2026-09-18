@@ -3,31 +3,28 @@
 // The Motor Fuel Price (Open Data) Regulations 2025 that covers EVERY UK forecourt,
 // including retailers with no free public feed (Sainsbury's, BP, Shell, independents...).
 //
-// This is disabled unless FUEL_FINDER_CLIENT_ID / FUEL_FINDER_CLIENT_SECRET are set,
-// since it requires registering an application via a GOV.UK One Login at:
+// This is disabled unless FUEL_FINDER_CLIENT_ID / FUEL_FINDER_CLIENT_SECRET are set.
+// Get those by registering an application via a GOV.UK One Login at:
 //   https://www.developer.fuel-finder.service.gov.uk/fuel-finder/get-started-ifr/onelogin
-// That registration screen reveals your account's actual token URL and API base URL -
-// paste those into .env as FUEL_FINDER_TOKEN_URL / FUEL_FINDER_API_BASE alongside your
-// client ID/secret. The generic developer docs don't publish those literal URLs, so the
-// defaults below are best-effort placeholders and may need a one-line correction once
-// you can see your real dashboard.
 //
-// Maps the API's fuel_type codes onto the same short codes the free retailer feeds use,
-// so both sources merge into one consistent list for the frontend.
+// The endpoints below were confirmed by hand against a real registered application
+// (Sept 2026) - the public docs describe fields but never publish the literal URLs,
+// so this isn't guesswork: token endpoint is JSON (not form-encoded, unlike a standard
+// OAuth2 client-credentials request), and the token comes back nested under `data`.
 const FUEL_TYPE_MAP = {
   E10: "E10",
   E5: "E5",
-  B7_Standard: "B7",
-  B7_Premium: "SDV",
+  B7_STANDARD: "B7",
+  B7_PREMIUM: "SDV",
   B10: "B10",
   HVO: "HVO"
 };
 
 const TOKEN_URL =
   process.env.FUEL_FINDER_TOKEN_URL ||
-  "https://api.fuelfinder.service.gov.uk/oauth/token";
+  "https://www.fuel-finder.service.gov.uk/api/v1/oauth/generate_access_token";
 const API_BASE =
-  process.env.FUEL_FINDER_API_BASE || "https://api.fuelfinder.service.gov.uk/v1";
+  process.env.FUEL_FINDER_API_BASE || "https://www.fuel-finder.service.gov.uk/api/v1";
 
 function isConfigured() {
   return Boolean(process.env.FUEL_FINDER_CLIENT_ID && process.env.FUEL_FINDER_CLIENT_SECRET);
@@ -42,12 +39,10 @@ async function getAccessToken() {
 
   const res = await fetch(TOKEN_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "client_credentials",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
       client_id: process.env.FUEL_FINDER_CLIENT_ID,
-      client_secret: process.env.FUEL_FINDER_CLIENT_SECRET,
-      scope: "fuelfinder.read"
+      client_secret: process.env.FUEL_FINDER_CLIENT_SECRET
     })
   });
 
@@ -56,48 +51,53 @@ async function getAccessToken() {
   }
 
   const body = await res.json();
+  if (!body.success || !body.data?.access_token) {
+    throw new Error(`Fuel Finder token request failed: ${body.message || "unexpected response shape"}`);
+  }
+
   cachedToken = {
-    value: body.access_token,
-    expiresAt: Date.now() + (body.expires_in || 3600) * 1000
+    value: body.data.access_token,
+    expiresAt: Date.now() + (body.data.expires_in || 3600) * 1000
   };
   return cachedToken.value;
 }
 
-// Follows whichever pagination shape the API uses (a `next` URL, or a `nextCursor` /
-// `nextPageToken` field to append as a query param) up to a sane page cap so a bug or
-// unexpected shape can't loop forever.
+// Paginates via `batch-number` (500 records/batch, confirmed empirically) - the API
+// returns HTTP 404 ("Requested batch N is not available") once you're past the end,
+// which is the actual stop signal, not an empty array or a `next` link.
 async function fetchAllPages(path, token) {
   const items = [];
-  let url = `${API_BASE}${path}`;
-  let cursor = null;
-  const MAX_PAGES = 200;
+  const MAX_BATCHES = 500; // safety cap - real data is ~17 batches as of Sept 2026
 
-  for (let page = 0; page < MAX_PAGES; page++) {
-    const requestUrl = cursor ? `${url}${url.includes("?") ? "&" : "?"}cursor=${encodeURIComponent(cursor)}` : url;
-    const res = await fetch(requestUrl, {
+  for (let batch = 1; batch <= MAX_BATCHES; batch++) {
+    const res = await fetch(`${API_BASE}${path}?batch-number=${batch}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
-    if (!res.ok) throw new Error(`Fuel Finder API request failed: HTTP ${res.status} (${requestUrl})`);
 
-    const body = await res.json();
-    const pageItems = Array.isArray(body) ? body : body.data || body.items || body.results || [];
+    if (res.status === 404) break; // past the last batch
+    if (!res.ok) throw new Error(`Fuel Finder API request failed: HTTP ${res.status} (${path}, batch ${batch})`);
+
+    const pageItems = await res.json();
+    if (!Array.isArray(pageItems) || pageItems.length === 0) break;
     items.push(...pageItems);
-
-    const next = body.next || body.nextPageUrl || body.links?.next || body.meta?.nextCursor || body.nextCursor;
-    if (!next || pageItems.length === 0) break;
-
-    if (typeof next === "string" && next.startsWith("http")) {
-      url = next;
-      cursor = null;
-    } else {
-      cursor = next;
-    }
   }
 
   return items;
 }
 
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+
+// Stations that haven't published real hours report "00:00:00"/"00:00:00" with
+// is_24_hours false, rather than omitting the fields - that's a placeholder, not a
+// real (and extremely unusual) midnight-to-midnight closing time, so it's treated the
+// same as "unknown, don't show".
+function isUnpublished(open, close, is24h) {
+  return !is24h && (!open || open === "00:00:00") && (!close || close === "00:00:00");
+}
+
+function hhmm(value) {
+  return value ? value.slice(0, 5) : null;
+}
 
 function extractOpeningTimes(info) {
   const usualDays = info.opening_times?.usual_days;
@@ -106,13 +106,13 @@ function extractOpeningTimes(info) {
   const openingTimes = {};
   for (const day of DAYS) {
     const d = usualDays[day];
-    if (!d || (!d.open && !d.close && !d.is_24_hours)) continue;
-    openingTimes[day] = { open: d.open || null, close: d.close || null, is24h: Boolean(d.is_24_hours) };
+    if (!d || isUnpublished(d.open, d.close, d.is_24_hours)) continue;
+    openingTimes[day] = { open: hhmm(d.open), close: hhmm(d.close), is24h: Boolean(d.is_24_hours) };
   }
 
-  const bh = info.opening_times?.bank_holidays;
-  if (bh && (bh.open_time || bh.close_time || bh.is_24_hours)) {
-    openingTimes.bankHoliday = { open: bh.open_time || null, close: bh.close_time || null, is24h: Boolean(bh.is_24_hours) };
+  const bh = info.opening_times?.bank_holiday;
+  if (bh && !isUnpublished(bh.open_time, bh.close_time, bh.is_24_hours)) {
+    openingTimes.bankHoliday = { open: hhmm(bh.open_time), close: hhmm(bh.close_time), is24h: Boolean(bh.is_24_hours) };
   }
 
   return Object.keys(openingTimes).length > 0 ? openingTimes : null;

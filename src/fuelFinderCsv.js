@@ -49,8 +49,14 @@ function hhmm(value) {
   return value ? value.slice(0, 5) : null;
 }
 
-// Not every station reports hours - a day with no open/close time at all (rather than
-// a real midnight-to-midnight value) means "unknown", not "closed", so it's omitted.
+// Stations that haven't published real hours report "00:00:00"/"00:00:00" with
+// is_24_hours false, rather than leaving the fields blank - that's a placeholder, not
+// a real (and extremely unusual) midnight-to-midnight closing time, so treat it as
+// "unknown, don't show" the same as if the fields were empty.
+function isUnpublished(open, close, is24h) {
+  return !is24h && (!open || open === "00:00:00") && (!close || close === "00:00:00");
+}
+
 function extractOpeningTimes(row) {
   const openingTimes = {};
   for (const day of DAYS) {
@@ -58,14 +64,14 @@ function extractOpeningTimes(row) {
     const open = row[`${prefix}.open_time`];
     const close = row[`${prefix}.close_time`];
     const is24h = row[`${prefix}.is_24_hours`] === "true";
-    if (!open && !close && !is24h) continue;
+    if (isUnpublished(open, close, is24h)) continue;
     openingTimes[day] = { open: hhmm(open), close: hhmm(close), is24h };
   }
 
   const bhOpen = row["forecourts.opening_times.bank_holiday.standard.open_time"];
   const bhClose = row["forecourts.opening_times.bank_holiday.standard.close_time"];
   const bhIs24h = row["forecourts.opening_times.bank_holiday.standard.is_24_hours"] === "true";
-  if (bhOpen || bhClose || bhIs24h) {
+  if (!isUnpublished(bhOpen, bhClose, bhIs24h)) {
     openingTimes.bankHoliday = { open: hhmm(bhOpen), close: hhmm(bhClose), is24h: bhIs24h };
   }
 
