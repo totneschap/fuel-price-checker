@@ -1,3 +1,12 @@
+// Station brand/address/name fields come from external feeds - Open Charge Map's in
+// particular is community-editable - so they're untrusted and must be escaped before
+// going into innerHTML, not just interpolated directly.
+const escapeDiv = document.createElement("div");
+function escapeHtml(str) {
+  escapeDiv.textContent = str ?? "";
+  return escapeDiv.innerHTML;
+}
+
 const form = document.getElementById("search-form");
 const postcodeInput = document.getElementById("postcode");
 const locateBtn = document.getElementById("locate-btn");
@@ -199,8 +208,8 @@ function stationPopupHtml(station, price, fuelCode) {
         <span><i style="background:#6b7280"></i>Fuel duty ${duty.toFixed(1)}p</span>
         <span><i style="background:#b7bec7"></i>VAT ${vat.toFixed(1)}p</span>
       </div>
-      <div class="popup-brand">${logoUrl ? `<img src="${logoUrl}" alt="" onerror="this.remove()" />` : ""}${station.brand}</div>
-      <div class="popup-address">${station.address}${station.postcode ? ", " + station.postcode : ""}</div>
+      <div class="popup-brand">${logoUrl ? `<img src="${logoUrl}" alt="" onerror="this.remove()" />` : ""}${escapeHtml(station.brand)}</div>
+      <div class="popup-address">${escapeHtml(station.address)}${station.postcode ? ", " + escapeHtml(station.postcode) : ""}</div>
       ${openingHoursHtml(station.openingTimes)}
       ${amenitiesHtml(station.amenities)}
       <div class="popup-distance">${station.distance.toFixed(1)} mi away</div>
@@ -321,8 +330,8 @@ function renderResults(data) {
     li.className = "station-card";
     li.innerHTML = `
       <div class="station-info">
-        <div class="station-brand"><span class="station-rank">${i + 1}</span> ${station.brand}</div>
-        <div class="station-address">${station.address}${station.postcode ? ", " + station.postcode : ""}</div>
+        <div class="station-brand"><span class="station-rank">${i + 1}</span> ${escapeHtml(station.brand)}</div>
+        <div class="station-address">${escapeHtml(station.address)}${station.postcode ? ", " + escapeHtml(station.postcode) : ""}</div>
         <div class="station-distance">${station.distance.toFixed(1)} mi away</div>
       </div>
       <div class="station-price ${priceClass}">
@@ -369,15 +378,15 @@ function renderEvResults(data) {
         : `<span class="pence" style="font-size:0.85rem">Check app</span>`;
 
     const connectorSummary = station.connections
-      .map((c) => `${c.type}${c.powerKW ? ` ${c.powerKW}kW` : ""}`)
+      .map((c) => `${escapeHtml(c.type)}${c.powerKW ? ` ${c.powerKW}kW` : ""}`)
       .join(" · ");
 
     const li = document.createElement("li");
     li.className = "station-card";
     li.innerHTML = `
       <div class="station-info">
-        <div class="station-brand"><span class="station-rank">${i + 1}</span> ${station.operator}</div>
-        <div class="station-address">${station.name}${station.postcode ? ", " + station.postcode : ""}</div>
+        <div class="station-brand"><span class="station-rank">${i + 1}</span> ${escapeHtml(station.operator)}</div>
+        <div class="station-address">${escapeHtml(station.name)}${station.postcode ? ", " + escapeHtml(station.postcode) : ""}</div>
         <div class="connections">${connectorSummary}</div>
         <div class="station-distance">${station.distance.toFixed(1)} mi away</div>
       </div>
@@ -390,10 +399,10 @@ function renderEvResults(data) {
     const evLogoUrl = brandLogoUrl(station.operator);
     const evPopup = `
       <div class="popup-card">
-        <div class="popup-brand">${evLogoUrl ? `<img src="${evLogoUrl}" alt="" onerror="this.remove()" />` : ""}${station.operator}</div>
-        <div class="popup-address">${station.name}${station.postcode ? ", " + station.postcode : ""}</div>
-        <div class="popup-chip-row">${station.connections.map((c) => `<span class="popup-chip">${c.type}${c.powerKW ? ` ${c.powerKW}kW` : ""}</span>`).join("")}</div>
-        ${typeof price === "number" ? `<div class="popup-price-sub">~${price}p/kWh (${station.tariff.network} PAYG)</div>` : `<div class="popup-price-sub">Check the operator's app for pricing</div>`}
+        <div class="popup-brand">${evLogoUrl ? `<img src="${evLogoUrl}" alt="" onerror="this.remove()" />` : ""}${escapeHtml(station.operator)}</div>
+        <div class="popup-address">${escapeHtml(station.name)}${station.postcode ? ", " + escapeHtml(station.postcode) : ""}</div>
+        <div class="popup-chip-row">${station.connections.map((c) => `<span class="popup-chip">${escapeHtml(c.type)}${c.powerKW ? ` ${c.powerKW}kW` : ""}</span>`).join("")}</div>
+        ${typeof price === "number" ? `<div class="popup-price-sub">~${price}p/kWh (${escapeHtml(station.tariff.network)} PAYG)</div>` : `<div class="popup-price-sub">Check the operator's app for pricing</div>`}
         <div class="popup-distance">${station.distance.toFixed(1)} mi away</div>
         <a class="popup-directions" href="${directionsUrl(station.lat, station.lon)}" target="_blank" rel="noopener">Get directions</a>
       </div>
@@ -477,3 +486,20 @@ locateBtn.addEventListener("click", () => {
 
 loadStatus();
 setInterval(loadStatus, 60000);
+
+// Supports links from the /petrol-prices/<city> SEO pages ("Search all fuel types and
+// EV charging near X"), which pass a location as ?lat=&lon=&name= rather than a postcode.
+(function runFromUrlParams() {
+  const params = new URLSearchParams(window.location.search);
+  const lat = parseFloat(params.get("lat"));
+  const lon = parseFloat(params.get("lon"));
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+
+  lastCoords = { lat, lon };
+  const name = params.get("name");
+  if (name) {
+    postcodeInput.value = "";
+    postcodeInput.placeholder = name;
+  }
+  search();
+})();

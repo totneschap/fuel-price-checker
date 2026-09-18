@@ -5,6 +5,8 @@ const { refreshPrices, getCache } = require("./src/fetchPrices");
 const { geocodePostcode } = require("./src/geocode");
 const { milesBetween } = require("./src/distance");
 const evChargePoints = require("./src/evChargePoints");
+const cities = require("./src/cities");
+const { renderLocationPage, renderLocationsIndex, renderSitemap } = require("./src/seoPages");
 
 const PORT = process.env.PORT || 3000;
 const REFRESH_INTERVAL_MS = 20 * 60 * 1000; // 20 minutes
@@ -118,6 +120,20 @@ app.get("/api/ev-stations", async (req, res) => {
   } catch (err) {
     res.status(err.status || 400).json({ error: err.message });
   }
+});
+
+app.get("/petrol-prices", (req, res) => {
+  res.send(renderLocationsIndex(cities));
+});
+
+app.get("/petrol-prices/:slug", (req, res) => {
+  const city = cities.find((c) => c.slug === req.params.slug);
+  if (!city) return res.status(404).send("City not found");
+  res.send(renderLocationPage(city, getCache(), cities));
+});
+
+app.get("/sitemap.xml", (req, res) => {
+  res.type("application/xml").send(renderSitemap(cities));
 });
 
 app.listen(PORT, async () => {
