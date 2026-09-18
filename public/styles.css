@@ -598,6 +598,18 @@ input, select {
   margin: 12px 0 28px;
 }
 
+/* The cards are much wider here than in the app's narrow sidebar, so let the address
+   wrap onto a second line instead of inheriting the sidebar's ellipsis truncation. */
+.location-page .station-address {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.location-page .station-card {
+  align-items: flex-start;
+}
+
 .location-page .loc-brand-logo {
   width: 16px;
   height: 16px;
