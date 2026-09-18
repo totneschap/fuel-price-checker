@@ -159,7 +159,7 @@ function fuelSection(cache, fuel, moversForFuel) {
       <div class="stat-chip"><span class="stat-value">${(ext.max.prices[fuel.code] - ext.min.prices[fuel.code]).toFixed(1)}p</span><span class="stat-label">UK spread</span></div>
     </div>
 
-    ${moversForFuel ? `<h3>Biggest movers since ${new Date(moversForFuel.since).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}</h3>${moversList(moversForFuel, fuel.code)}` : ""}
+    ${moversForFuel && moversForFuel.drops.length > 0 ? `<h3>Biggest movers since ${new Date(moversForFuel.since).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}</h3>${moversList(moversForFuel, fuel.code)}` : ""}
 
     <h3>Top 10 cheapest</h3>
     ${rankedList(stations, fuel.code, "asc", 10)}
