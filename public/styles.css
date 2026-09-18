@@ -596,6 +596,7 @@ input, select {
 
 .location-page .loc-results {
   margin: 12px 0 28px;
+  padding-left: 0; /* overrides ".legal-page ul" - this is a card list, not a bullet list */
 }
 
 /* The cards are much wider here than in the app's narrow sidebar, so let the address
